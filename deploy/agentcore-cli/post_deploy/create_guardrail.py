@@ -6,9 +6,10 @@ something `agentcore deploy` provisions).
 Run with: uv run python deploy/agentcore-cli/post_deploy/create_guardrail.py
 Idempotent: looks up an existing guardrail by name before creating.
 
-After running, put the printed guardrail ID/version into the Inspector
-Agent's envVars in agentcore.json (GUARDRAIL_ID, GUARDRAIL_VERSION,
-GUARDRAIL_BLOCKED_MESSAGE) before `agentcore deploy`.
+Writes the guardrail id/version/blocked-message to
+deploy/agentcore-cli/.guardrail_state.json (not committed - regenerate by
+re-running this script) for patch_agentcore_json.py to read - no ARN/ID
+ever needs to be hand-copied into a script.
 """
 
 import json
@@ -20,6 +21,8 @@ import boto3
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from shared.guardrail_config import build_guardrail_config  # noqa: E402
 from shared.resource_config import AWS_PROFILE, AWS_REGION, GUARDRAIL_NAME  # noqa: E402
+
+STATE_PATH = Path(__file__).resolve().parents[1] / ".guardrail_state.json"
 
 
 def main() -> None:
@@ -41,13 +44,12 @@ def main() -> None:
         print(f"Created guardrail: id={guardrail_id} version={version}")
 
     blocked_message = build_guardrail_config()["blockedOutputsMessaging"]
-    print()
-    print("Set these in the Inspector Agent's agentcore.json envVars:")
-    print(json.dumps({
-        "GUARDRAIL_ID": guardrail_id,
-        "GUARDRAIL_VERSION": version,
-        "GUARDRAIL_BLOCKED_MESSAGE": blocked_message,
-    }, indent=2))
+    STATE_PATH.write_text(json.dumps({
+        "guardrailId": guardrail_id,
+        "guardrailVersion": version,
+        "guardrailBlockedMessage": blocked_message,
+    }, indent=2) + "\n")
+    print(f"Wrote {STATE_PATH}")
 
 
 if __name__ == "__main__":

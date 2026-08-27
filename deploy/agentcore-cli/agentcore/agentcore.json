@@ -35,7 +35,7 @@
           "id": "gw",
           "to": {
             "type": "gateway",
-            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-working-gw-t8wrhrztlx"
+            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-working-gw-uvygetv6i8"
           }
         }
       ],
@@ -62,7 +62,7 @@
         },
         {
           "name": "GUARDRAIL_ID",
-          "value": "x635vhd7ug25"
+          "value": "cybsazm9p61o"
         },
         {
           "name": "GUARDRAIL_VERSION",
@@ -81,7 +81,7 @@
           "id": "gw",
           "to": {
             "type": "gateway",
-            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-ek6hd9s87a"
+            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-qev0hiuuhs"
           }
         }
       ],
@@ -108,11 +108,11 @@
         },
         {
           "name": "WORKING_AGENT_ROLE_ARN",
-          "value": "arn:aws:iam::778858743114:role/AgentCore-agentcorecli-de-ApplicationAgentNumberGue-MD7QJrhaMZt7"
+          "value": "arn:aws:iam::778858743114:role/AgentCore-agentcorecli-de-ApplicationAgentNumberGue-a3fudBNIqUJZ"
         },
         {
           "name": "INSPECTOR_AGENT_GATEWAY_ARN",
-          "value": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-ek6hd9s87a"
+          "value": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-qev0hiuuhs"
         }
       ],
       "tags": {
@@ -123,14 +123,14 @@
           "id": "working",
           "to": {
             "type": "runtime",
-            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_working_agent-H7NdMi9O8W"
+            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_working_agent-N2POfH4Wm9"
           }
         },
         {
           "id": "inspector",
           "to": {
             "type": "runtime",
-            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_inspector_agent-nlJ6dJ4TXy"
+            "arn": "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_inspector_agent-CmCCXb6GFY"
           }
         }
       ],

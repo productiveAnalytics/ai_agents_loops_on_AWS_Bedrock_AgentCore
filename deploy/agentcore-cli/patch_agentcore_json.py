@@ -4,7 +4,12 @@ just overwrites the same envVars/tags.
 
 Phase-1 only: does NOT add `connections` (those need real Gateway/Runtime
 ARNs that don't exist until after the first `agentcore deploy`). See
-bootstrap_commands.sh's PHASE 2 section for that follow-up edit.
+patch_agentcore_json_phase2.py for that follow-up edit.
+
+Reads the guardrail id/version from .guardrail_state.json (written by
+post_deploy/create_guardrail.py) rather than a hardcoded constant, so a
+fresh guardrail from a from-scratch redeploy never needs a code edit here
+- run create_guardrail.py first.
 
 Run with: uv run python deploy/agentcore-cli/patch_agentcore_json.py
 """
@@ -17,32 +22,38 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from shared.resource_config import AWS_REGION, BEDROCK_MODEL_ID, MAX_LOOPS_PARAM, PROJECT_TAG  # noqa: E402
 
 AGENTCORE_JSON = Path(__file__).resolve().parent / "agentcore" / "agentcore.json"
+GUARDRAIL_STATE_PATH = Path(__file__).resolve().parent / ".guardrail_state.json"
 
-# GUARDRAIL_* values come from post_deploy/create_guardrail.py's printed output.
-GUARDRAIL_ID = "x635vhd7ug25"
-GUARDRAIL_VERSION = "DRAFT"
-GUARDRAIL_BLOCKED_MESSAGE = "Output blocked by the no-secret-leak guardrail."
 
-ENV_BY_RUNTIME = {
-    "number_guessing_working_agent": {
-        "BEDROCK_MODEL_ID": BEDROCK_MODEL_ID,
-        "AWS_REGION": AWS_REGION,
-    },
-    "number_guessing_inspector_agent": {
-        "BEDROCK_MODEL_ID": BEDROCK_MODEL_ID,
-        "AWS_REGION": AWS_REGION,
-        "GUARDRAIL_ID": GUARDRAIL_ID,
-        "GUARDRAIL_VERSION": GUARDRAIL_VERSION,
-        "GUARDRAIL_BLOCKED_MESSAGE": GUARDRAIL_BLOCKED_MESSAGE,
-    },
-    "number_guessing_orchestrator_agent": {
-        "AWS_REGION": AWS_REGION,
-        "MAX_LOOPS_PARAM_NAME": MAX_LOOPS_PARAM,
-    },
-}
+def _env_by_runtime() -> dict:
+    if not GUARDRAIL_STATE_PATH.exists():
+        raise SystemExit(
+            f"{GUARDRAIL_STATE_PATH} not found - run "
+            "post_deploy/create_guardrail.py first."
+        )
+    guardrail = json.loads(GUARDRAIL_STATE_PATH.read_text())
+
+    return {
+        "number_guessing_working_agent": {
+            "BEDROCK_MODEL_ID": BEDROCK_MODEL_ID,
+            "AWS_REGION": AWS_REGION,
+        },
+        "number_guessing_inspector_agent": {
+            "BEDROCK_MODEL_ID": BEDROCK_MODEL_ID,
+            "AWS_REGION": AWS_REGION,
+            "GUARDRAIL_ID": guardrail["guardrailId"],
+            "GUARDRAIL_VERSION": guardrail["guardrailVersion"],
+            "GUARDRAIL_BLOCKED_MESSAGE": guardrail["guardrailBlockedMessage"],
+        },
+        "number_guessing_orchestrator_agent": {
+            "AWS_REGION": AWS_REGION,
+            "MAX_LOOPS_PARAM_NAME": MAX_LOOPS_PARAM,
+        },
+    }
 
 
 def main() -> None:
+    env_by_runtime = _env_by_runtime()
     data = json.loads(AGENTCORE_JSON.read_text())
 
     # Project-level tags: CDK applies these via Tags.of(stack).add(...), which
@@ -54,7 +65,7 @@ def main() -> None:
     data["tags"] = {**data.get("tags", {}), **PROJECT_TAG}
 
     for runtime in data["runtimes"]:
-        env = ENV_BY_RUNTIME.get(runtime["name"])
+        env = env_by_runtime.get(runtime["name"])
         if env:
             # Merge onto whatever's already there rather than overwrite - phase 2
             # (patch_agentcore_json_phase2.py) adds its own extra envVars (e.g. the

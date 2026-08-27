@@ -5,18 +5,21 @@
       "Sid": "DenyInvokingWorkingGateway",
       "Effect": "Deny",
       "Action": "bedrock-agentcore:InvokeGateway",
-      "Resource": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-working-gw-t8wrhrztlx"
+      "Resource": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-working-gw-uvygetv6i8"
     },
     {
       "Sid": "AllowApplyingNoSecretLeakGuardrail",
       "Effect": "Allow",
       "Action": "bedrock:ApplyGuardrail",
-      "Resource": "arn:aws:bedrock:us-west-2:778858743114:guardrail/x635vhd7ug25"
+      "Resource": "arn:aws:bedrock:us-west-2:778858743114:guardrail/cybsazm9p61o"
     },
     {
       "Sid": "AllowMarketplaceSubscriptionForBedrockModels",
       "Effect": "Allow",
-      "Action": ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"],
+      "Action": [
+        "aws-marketplace:ViewSubscriptions",
+        "aws-marketplace:Subscribe"
+      ],
       "Resource": "*"
     }
   ]

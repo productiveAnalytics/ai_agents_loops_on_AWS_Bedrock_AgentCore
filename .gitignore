@@ -228,3 +228,4 @@ deploy/agentcore-cli/agentcore/.cli/
 # Local-only manifest of deployed Lambda ARNs (regenerate via deploy_lambdas.py)
 deploy/agentcore-cli/.deployed_lambdas.json
 deploy/agentcore-cli/.deployed_state_phase1.json
+deploy/agentcore-cli/.guardrail_state.json

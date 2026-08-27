@@ -4,8 +4,11 @@
     {
       "Sid": "AllowIntrospectingWorkingAgentRoleForCheatCheck",
       "Effect": "Allow",
-      "Action": ["iam:ListRolePolicies", "iam:GetRolePolicy"],
-      "Resource": "arn:aws:iam::778858743114:role/AgentCore-agentcorecli-de-ApplicationAgentNumberGue-MD7QJrhaMZt7"
+      "Action": [
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::778858743114:role/AgentCore-agentcorecli-de-ApplicationAgentNumberGue-a3fudBNIqUJZ"
     },
     {
       "Sid": "AllowReadingMaxLoopsParam",
@@ -16,10 +19,13 @@
     {
       "Sid": "AllowInvokingRuntimeEndpoints",
       "Effect": "Allow",
-      "Action": ["bedrock-agentcore:InvokeAgentRuntime", "bedrock-agentcore:InvokeAgentRuntimeForUser"],
+      "Action": [
+        "bedrock-agentcore:InvokeAgentRuntime",
+        "bedrock-agentcore:InvokeAgentRuntimeForUser"
+      ],
       "Resource": [
-        "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_working_agent-H7NdMi9O8W/runtime-endpoint/*",
-        "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_inspector_agent-nlJ6dJ4TXy/runtime-endpoint/*"
+        "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_working_agent-N2POfH4Wm9/runtime-endpoint/*",
+        "arn:aws:bedrock-agentcore:us-west-2:778858743114:runtime/agentcorecli_number_guessing_inspector_agent-CmCCXb6GFY/runtime-endpoint/*"
       ]
     }
   ]

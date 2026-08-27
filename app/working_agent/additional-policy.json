@@ -5,12 +5,15 @@
       "Sid": "DenyInvokingInspectorGateway",
       "Effect": "Deny",
       "Action": "bedrock-agentcore:InvokeGateway",
-      "Resource": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-ek6hd9s87a"
+      "Resource": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-inspector-gw-qev0hiuuhs"
     },
     {
       "Sid": "AllowMarketplaceSubscriptionForBedrockModels",
       "Effect": "Allow",
-      "Action": ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"],
+      "Action": [
+        "aws-marketplace:ViewSubscriptions",
+        "aws-marketplace:Subscribe"
+      ],
       "Resource": "*"
     }
   ]
