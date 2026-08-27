@@ -13,6 +13,10 @@ IAM isolation between the two agents has been independently verified via
 below for everything that had to be fixed to get there — worth reading before you
 redeploy from scratch).
 
+## Architecture
+
+![Architecture diagram: agents, AgentCore modules, and AWS services](docs/architecture.svg)
+
 ## Prerequisites
 
 - AWS account with credentials configured (this project targets profile `prod8ctive`,
