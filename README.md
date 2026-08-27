@@ -125,7 +125,9 @@ uv run python scripts/setup_secret.py --secret-value 53 --max-loops 8
 ## 8. Play a game
 
 ```bash
-npx @aws/agentcore invoke --runtime number_guessing_orchestrator_agent
+cd ai_agents_loops_on_AWS_Bedrock_AgentCore/deploy/agentcore-cli
+
+AWS_PROFILE=prod8ctive npx @aws/agentcore invoke --runtime number_guessing_orchestrator_agent --prompt "start" --json
 ```
 
 ## 9. Tear it down
