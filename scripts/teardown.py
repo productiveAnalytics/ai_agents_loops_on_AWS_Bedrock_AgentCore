@@ -240,6 +240,14 @@ def main() -> None:
     if not dry_run:
         time.sleep(5)  # let KMS/IAM eventual consistency settle before the safety-net check
 
+    # Confirmed live: the 3 CDK container-image-builder custom-resource Lambdas get
+    # invoked one more time as part of the stack's own DELETE cleanup, which
+    # auto-recreates their /aws/lambda/<name> log group (Lambda does this on any
+    # invoke if the log group is missing) - so the first sweep above can be
+    # undone by the stack deletion itself. Sweep again now that it's done.
+    print("\n=== CloudWatch log groups, second pass (stack deletion can recreate some) ===")
+    _delete_matching_log_groups(logs_client, dry_run)
+
     print("\n=== KMS keys (safety net in case the stack's DeletionPolicy retained them) ===")
     _ensure_kms_keys_scheduled(kms, stack_kms_key_ids, dry_run)
 
