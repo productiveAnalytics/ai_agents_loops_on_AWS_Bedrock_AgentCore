@@ -139,3 +139,15 @@ $AGENTCORE deploy -y
 # --- Deploy everything (first step that is genuinely irreversible/billable
 # beyond the Lambdas above - confirm before running) ---
 # $AGENTCORE deploy --target default -y
+
+# =====================================================================
+# POST-DEPLOY: tag CloudWatch log groups. These are auto-created (by Lambda
+# on first invoke, by CodeBuild on first build, by the AgentCore Runtime
+# service on first invoke) rather than declared as template resources, so
+# they never receive the project-level `tags` CDK applies via Tags.of(stack)
+# - confirmed live: every other supporting resource (ECR repos, IAM roles,
+# KMS keys, the CodeBuild project, the CFN stack itself) picked up the
+# `Project` tag from that cascade, but every log group under the stack had
+# zero tags until tagged directly. Safe to re-run after every deploy.
+# =====================================================================
+# uv run python deploy/agentcore-cli/post_deploy/tag_log_groups.py

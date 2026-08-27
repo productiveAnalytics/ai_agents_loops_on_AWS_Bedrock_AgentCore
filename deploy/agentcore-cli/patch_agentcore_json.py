@@ -45,10 +45,24 @@ ENV_BY_RUNTIME = {
 def main() -> None:
     data = json.loads(AGENTCORE_JSON.read_text())
 
+    # Project-level tags: CDK applies these via Tags.of(stack).add(...), which
+    # propagates to every *supporting* resource the stack creates (ECR repos,
+    # IAM roles, KMS keys, CloudWatch log groups, the CodeBuild container
+    # builder, the stack itself) - everything that isn't a native
+    # AWS::BedrockAgentCore::* resource, which gets PROJECT_TAG merged in
+    # below instead via each resource's own per-resource "tags" field.
+    data["tags"] = {**data.get("tags", {}), **PROJECT_TAG}
+
     for runtime in data["runtimes"]:
         env = ENV_BY_RUNTIME.get(runtime["name"])
         if env:
-            runtime["envVars"] = [{"name": k, "value": v} for k, v in env.items()]
+            # Merge onto whatever's already there rather than overwrite - phase 2
+            # (patch_agentcore_json_phase2.py) adds its own extra envVars (e.g. the
+            # orchestrator's WORKING_AGENT_ROLE_ARN/INSPECTOR_AGENT_GATEWAY_ARN)
+            # after this script has already run once, and re-running this script
+            # (e.g. to pick up a tags change) must not clobber those.
+            existing_env = {e["name"]: e["value"] for e in runtime.get("envVars", [])}
+            runtime["envVars"] = [{"name": k, "value": v} for k, v in {**existing_env, **env}.items()]
         runtime["tags"] = PROJECT_TAG
 
     for memory in data["memories"]:

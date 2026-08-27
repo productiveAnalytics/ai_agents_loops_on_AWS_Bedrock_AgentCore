@@ -105,6 +105,18 @@ def _ensure_role(session, iam) -> str:
     return role["Arn"]
 
 
+def _tag_log_group(logs_client, function_name: str) -> None:
+    # The /aws/lambda/<name> log group is auto-created by Lambda on first
+    # invoke/deploy, not a CFN-declared resource, so it never picks up
+    # project tags any other way. Safe to call before the log group exists
+    # (Lambda creates it on deploy) - tag_log_group then just no-ops via the
+    # ResourceNotFoundException below.
+    try:
+        logs_client.tag_log_group(logGroupName=f"/aws/lambda/{function_name}", tags=PROJECT_TAG)
+    except logs_client.exceptions.ResourceNotFoundException:
+        pass
+
+
 def _ensure_function(lambda_client, name: str, zip_bytes: bytes, role_arn: str, env_vars: dict) -> str:
     try:
         lambda_client.get_function(FunctionName=name)
@@ -136,6 +148,7 @@ def main() -> None:
     session = boto3.Session(profile_name=AWS_PROFILE, region_name=AWS_REGION)
     iam = session.client("iam")
     lambda_client = session.client("lambda")
+    logs_client = session.client("logs")
 
     role_arn = _ensure_role(session, iam)
     print(f"Execution role ready: {role_arn}")
@@ -145,6 +158,7 @@ def main() -> None:
         zip_bytes = _zip_handler(LAMBDAS_DIR / dir_name)
         env_vars = ENV_VARS_BY_FUNCTION[dir_name]
         arn = _ensure_function(lambda_client, function_name, zip_bytes, role_arn, env_vars)
+        _tag_log_group(logs_client, function_name)
         arns[dir_name] = arn
         print(f"{function_name}: {arn}")
 

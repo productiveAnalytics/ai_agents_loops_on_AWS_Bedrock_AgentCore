@@ -31,6 +31,23 @@ def _find_tagged_resources(session) -> list[str]:
     paginator = client.get_paginator("get_resources")
     for page in paginator.paginate(TagFilters=[{"Key": _SERVICE_KEY, "Values": [_SERVICE_VALUE]}]):
         arns.extend(m["ResourceARN"] for m in page["ResourceTagMappingList"])
+    arns.extend(_find_tagged_iam_roles(session))
+    return arns
+
+
+def _find_tagged_iam_roles(session) -> list[str]:
+    # IAM is not a searchable resource type in the Resource Groups Tagging
+    # API (confirmed live: get_resources returns nothing for IAM even with
+    # ResourceTypeFilters=["iam"], despite the roles genuinely carrying the
+    # tag) - so IAM roles need their own direct discovery via list_role_tags.
+    iam = session.client("iam")
+    arns = []
+    paginator = iam.get_paginator("list_roles")
+    for page in paginator.paginate():
+        for role in page["Roles"]:
+            tags = iam.list_role_tags(RoleName=role["RoleName"]).get("Tags", [])
+            if any(t["Key"] == _SERVICE_KEY and t["Value"] == _SERVICE_VALUE for t in tags):
+                arns.append(role["Arn"])
     return arns
 
 
@@ -104,8 +121,8 @@ def main() -> None:
 
     if not args.yes:
         print("\nDry run only - re-run with --yes to actually delete.")
-        print("Note: SSM parameters and any un-tag-discoverable resources (e.g. gateway targets)")
-        print("may need manual cleanup - check the AWS console/CLI to confirm nothing is left running.")
+        print("Note: some resource types here (kms, ecr, logs, codebuild, cloudformation) have no")
+        print("delete handler yet - deleting the CloudFormation stack directly covers most of them.")
 
 
 if __name__ == "__main__":

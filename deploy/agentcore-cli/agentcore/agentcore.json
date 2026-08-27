@@ -5,7 +5,8 @@
   "managedBy": "CDK",
   "tags": {
     "agentcore:created-by": "agentcore-cli",
-    "agentcore:project-name": "agentcorecli"
+    "agentcore:project-name": "agentcorecli",
+    "Project": "number_guessing_ai_agents"
   },
   "runtimes": [
     {
