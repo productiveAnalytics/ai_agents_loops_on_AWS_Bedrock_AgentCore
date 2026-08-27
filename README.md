@@ -15,7 +15,11 @@ redeploy from scratch).
 
 ## Architecture
 
-![Architecture diagram: agents, AgentCore modules, and AWS services](docs/architecture.svg)
+![Architecture diagram: Conceptual Block Diagram](docs/architecture.svg)
+
+---
+
+![Architecture diagram: AI Agents, AgentCore modules, and AWS services](docs/multi-agents_on_AWS_Bedrock_AgentCore.png)
 
 ## Prerequisites
 
