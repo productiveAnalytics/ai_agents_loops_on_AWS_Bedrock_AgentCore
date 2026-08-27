@@ -1,10 +1,11 @@
 """The Guardrail that enforces "the Inspector's hint must never contain a
 digit" - a fully static rule that guarantees no leak regardless of what the
 secret actually is, since child-language hints never legitimately need
-digits. Returned as a plain dict of boto3 `create_guardrail` kwargs (already
-snake_cased to match the bedrock client's method signature) so both the
-AgentCore CLI deploy path and, later, a CDK custom resource pass the exact
-same request body.
+digits. Returned as a plain dict of boto3 `create_guardrail` kwargs (the
+`bedrock` client expects camelCase parameter names, confirmed against the
+live botocore service model/API errors - not xform_name'd snake_case like
+most other services) so both the AgentCore CLI deploy path and, later, a CDK
+custom resource pass the exact same request body.
 """
 
 from shared.resource_config import GUARDRAIL_NAME, PROJECT_TAG
@@ -21,21 +22,21 @@ def build_guardrail_config() -> dict:
             "child-language hints can never leak the secret number, regardless of "
             "its value."
         ),
-        "sensitive_information_policy_config": {
-            "regexes_config": [
+        "sensitiveInformationPolicyConfig": {
+            "regexesConfig": [
                 {
                     "name": NO_DIGITS_REGEX_NAME,
                     "description": "Matches any digit 0-9; hints are metaphors and never need one.",
                     "pattern": r"\d",
                     "action": "BLOCK",
-                    "input_action": "NONE",
-                    "input_enabled": False,
-                    "output_action": "BLOCK",
-                    "output_enabled": True,
+                    "inputAction": "NONE",
+                    "inputEnabled": False,
+                    "outputAction": "BLOCK",
+                    "outputEnabled": True,
                 }
             ]
         },
-        "blocked_input_messaging": "Input blocked by the no-secret-leak guardrail.",
-        "blocked_outputs_messaging": "Output blocked by the no-secret-leak guardrail.",
+        "blockedInputMessaging": "Input blocked by the no-secret-leak guardrail.",
+        "blockedOutputsMessaging": "Output blocked by the no-secret-leak guardrail.",
         "tags": [{"key": k, "value": v} for k, v in PROJECT_TAG.items()],
     }

@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInvokingWorkingGateway",
+      "Effect": "Deny",
+      "Action": "bedrock-agentcore:InvokeGateway",
+      "Resource": "arn:aws:bedrock-agentcore:us-west-2:778858743114:gateway/agentcorecli-num-guess-working-gw-t8wrhrztlx"
+    },
+    {
+      "Sid": "AllowApplyingNoSecretLeakGuardrail",
+      "Effect": "Allow",
+      "Action": "bedrock:ApplyGuardrail",
+      "Resource": "arn:aws:bedrock:us-west-2:778858743114:guardrail/x635vhd7ug25"
+    },
+    {
+      "Sid": "AllowMarketplaceSubscriptionForBedrockModels",
+      "Effect": "Allow",
+      "Action": ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"],
+      "Resource": "*"
+    }
+  ]
+}

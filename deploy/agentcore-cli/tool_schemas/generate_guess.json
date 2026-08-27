@@ -1,16 +1,14 @@
-{
-  "tools": [
-    {
-      "name": "generate_guess",
-      "description": "Generate a random integer guess in the inclusive range [low, high].",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "low": { "type": "integer", "description": "Lower bound (inclusive)" },
-          "high": { "type": "integer", "description": "Upper bound (inclusive)" }
-        },
-        "required": ["low", "high"]
-      }
+[
+  {
+    "name": "generate_guess",
+    "description": "Generate a random integer guess in the inclusive range [low, high].",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "low": { "type": "integer", "description": "Lower bound (inclusive)" },
+        "high": { "type": "integer", "description": "Upper bound (inclusive)" }
+      },
+      "required": ["low", "high"]
     }
-  ]
-}
+  }
+]

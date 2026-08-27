@@ -4,8 +4,10 @@ import os
 
 AWS_REGION = os.environ["AWS_REGION"]
 
-WORKING_AGENT_RUNTIME_ARN = os.environ["WORKING_AGENT_RUNTIME_ARN"]
-INSPECTOR_AGENT_RUNTIME_ARN = os.environ["INSPECTOR_AGENT_RUNTIME_ARN"]
+# Auto-injected by the agentcore CLI's `connections` wiring (runtime
+# connections ids "working"/"inspector" on this runtime).
+WORKING_AGENT_RUNTIME_ARN = os.environ["RUNTIME_WORKING_ARN"]
+INSPECTOR_AGENT_RUNTIME_ARN = os.environ["RUNTIME_INSPECTOR_ARN"]
 
 # For the cheat-boundary self-check: confirm, via a live GetResourcePolicy
 # call, that the Working Agent's role is never an allowed principal on the

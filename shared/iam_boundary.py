@@ -1,11 +1,23 @@
-"""Builds the exact IAM resource-based policy documents that enforce the
-cheat boundary: each Gateway's resource policy names exactly one principal
-(its own Runtime agent's execution role), never the other agent's role.
+"""Builds IAM resource-based policy documents for the Gateway isolation
+cheat boundary: each Gateway's resource policy would name exactly one
+principal (its own Runtime agent's execution role), never the other agent's
+role.
 
-Plain Python, no AWS SDK imports - both the AgentCore CLI deploy path's
-post_deploy/attach_resource_policies.py and (later) a CDK custom resource
-call these functions directly, so the policy logic is defined once.
+Note on the actual deployed mechanism: the agentcore CLI's `connections`
+wiring enforces this isolation via an IDENTITY-based policy statement added
+directly to the calling runtime's own execution role (scoped
+bedrock-agentcore:InvokeGateway), not a resource-based policy on the
+gateway - see app/orchestrator_agent/main.py's guard_node, which checks that
+mechanism directly. This module's resource-based-policy builder is kept as
+an optional additional defense-in-depth layer (a real AWS feature,
+PutResourcePolicy on the gateway) that isn't currently wired into the
+deploy path, but could be added via a post_deploy script later without
+changing this logic.
+
+Plain Python, no AWS SDK imports.
 """
+
+from __future__ import annotations
 
 from __future__ import annotations
 

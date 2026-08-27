@@ -26,7 +26,9 @@ def main() -> None:
     session = boto3.Session(profile_name=AWS_PROFILE, region_name=AWS_REGION)
     bedrock = session.client("bedrock")
 
-    existing = bedrock.list_guardrails(guardrailIdentifier=GUARDRAIL_NAME).get("guardrails", [])
+    # guardrailIdentifier filters by ID/ARN, not name - list unfiltered and match by name.
+    all_guardrails = bedrock.list_guardrails().get("guardrails", [])
+    existing = [g for g in all_guardrails if g["name"] == GUARDRAIL_NAME]
     if existing:
         guardrail_id = existing[0]["id"]
         version = existing[0].get("version", "DRAFT")
@@ -38,7 +40,7 @@ def main() -> None:
         version = response.get("version", "DRAFT")
         print(f"Created guardrail: id={guardrail_id} version={version}")
 
-    blocked_message = build_guardrail_config()["blocked_outputs_messaging"]
+    blocked_message = build_guardrail_config()["blockedOutputsMessaging"]
     print()
     print("Set these in the Inspector Agent's agentcore.json envVars:")
     print(json.dumps({

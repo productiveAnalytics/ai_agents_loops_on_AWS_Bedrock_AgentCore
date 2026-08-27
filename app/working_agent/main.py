@@ -73,11 +73,15 @@ def _narrow_bounds(low: int, high: int, guess: int, hint: HintInterpretation) ->
 
 
 def _parse_guess(tool_result) -> int:
-    """MCP tool results may come back as a dict, a JSON string, or a list of
-    content blocks depending on the langchain-mcp-adapters version - handle
-    all three defensively."""
+    """MCP tool results come back as a list of content blocks
+    ([{"type": "text", "text": "{\"guess\": N}"}]) - confirmed live against
+    the deployed Gateway. Also handles a bare dict/JSON string defensively."""
     if isinstance(tool_result, dict):
-        return int(tool_result["guess"])
+        if "guess" in tool_result:
+            return int(tool_result["guess"])
+        if "text" in tool_result:
+            return _parse_guess(tool_result["text"])
+        raise ValueError(f"Unexpected generate_guess tool result dict shape: {tool_result!r}")
     if isinstance(tool_result, str):
         return int(json.loads(tool_result)["guess"])
     if isinstance(tool_result, list) and tool_result:
@@ -94,7 +98,9 @@ async def _draw_guess(low: int, high: int) -> int:
         async with ClientSession(read, write) as session:
             await session.initialize()
             tools = await load_mcp_tools(session)
-            generate_guess_tool = next(t for t in tools if t.name == "generate_guess")
+            # Gateway namespaces MCP tool names as "${target_name}___${tool_name}"
+            # (confirmed in AWS docs) - our Gateway target is named "generate-guess".
+            generate_guess_tool = next(t for t in tools if t.name == "generate-guess___generate_guess")
             result = await generate_guess_tool.ainvoke({"low": low, "high": high})
             return _parse_guess(result)
 

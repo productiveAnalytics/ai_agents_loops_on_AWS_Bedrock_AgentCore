@@ -40,6 +40,14 @@ FUNCTIONS = {
     "no_secret_leak_evaluator": "number-guessing-no-secret-leak-evaluator",
 }
 
+# Env vars each Lambda needs at runtime (both read_secret and the evaluator
+# read the secret from the same SSM parameter).
+ENV_VARS_BY_FUNCTION = {
+    "generate_guess": {},
+    "read_secret": {"SECRET_VALUE_PARAM_NAME": SECRET_VALUE_PARAM},
+    "no_secret_leak_evaluator": {"SECRET_VALUE_PARAM_NAME": SECRET_VALUE_PARAM},
+}
+
 TRUST_POLICY = {
     "Version": "2012-10-17",
     "Statement": [
@@ -72,7 +80,7 @@ def _zip_handler(handler_dir: Path) -> bytes:
     return buf.getvalue()
 
 
-def _ensure_role(iam) -> str:
+def _ensure_role(session, iam) -> str:
     try:
         role = iam.get_role(RoleName=ROLE_NAME)["Role"]
     except iam.exceptions.NoSuchEntityException:
@@ -88,7 +96,7 @@ def _ensure_role(iam) -> str:
         # IAM role propagation delay before it's usable by Lambda.
         time.sleep(10)
 
-    account_id = boto3.client("sts").get_caller_identity()["Account"]
+    account_id = session.client("sts").get_caller_identity()["Account"]
     iam.put_role_policy(
         RoleName=ROLE_NAME,
         PolicyName="ReadNumberGuessingSsmParams",
@@ -97,13 +105,13 @@ def _ensure_role(iam) -> str:
     return role["Arn"]
 
 
-def _ensure_function(lambda_client, name: str, zip_bytes: bytes, role_arn: str) -> str:
+def _ensure_function(lambda_client, name: str, zip_bytes: bytes, role_arn: str, env_vars: dict) -> str:
     try:
         lambda_client.get_function(FunctionName=name)
         lambda_client.update_function_code(FunctionName=name, ZipFile=zip_bytes)
         lambda_client.get_waiter("function_updated").wait(FunctionName=name)
         response = lambda_client.update_function_configuration(
-            FunctionName=name, Role=role_arn, Timeout=30
+            FunctionName=name, Role=role_arn, Timeout=30, Environment={"Variables": env_vars}
         )
         lambda_client.get_waiter("function_updated").wait(FunctionName=name)
     except lambda_client.exceptions.ResourceNotFoundException:
@@ -115,6 +123,7 @@ def _ensure_function(lambda_client, name: str, zip_bytes: bytes, role_arn: str) 
             Code={"ZipFile": zip_bytes},
             Timeout=30,
             Tags=PROJECT_TAG,
+            Environment={"Variables": env_vars},
         )
         lambda_client.get_waiter("function_active_v2").wait(FunctionName=name)
 
@@ -128,13 +137,14 @@ def main() -> None:
     iam = session.client("iam")
     lambda_client = session.client("lambda")
 
-    role_arn = _ensure_role(iam)
+    role_arn = _ensure_role(session, iam)
     print(f"Execution role ready: {role_arn}")
 
     arns = {}
     for dir_name, function_name in FUNCTIONS.items():
         zip_bytes = _zip_handler(LAMBDAS_DIR / dir_name)
-        arn = _ensure_function(lambda_client, function_name, zip_bytes, role_arn)
+        env_vars = ENV_VARS_BY_FUNCTION[dir_name]
+        arn = _ensure_function(lambda_client, function_name, zip_bytes, role_arn, env_vars)
         arns[dir_name] = arn
         print(f"{function_name}: {arn}")
 

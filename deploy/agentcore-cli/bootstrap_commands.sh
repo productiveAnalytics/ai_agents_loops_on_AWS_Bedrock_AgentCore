@@ -53,47 +53,88 @@ $AGENTCORE add gateway \
   --description "Exposes only read_secret - the only tool the Inspector Agent's role can reach" \
   --protocol-type MCP --authorizer-type AWS_IAM --json
 
-# --- Gateway targets (2) - PENDING: run deploy_lambdas.py first, then fill
-# in the printed ARNs below. Non-interactive `add gateway-target` only
-# accepts a pre-existing Lambda ARN (no deploy-from-source flag), so the
-# Lambdas are created directly via boto3 (see deploy_lambdas.py) rather than
-# by the CLI.
-#
-# python deploy_lambdas.py   # writes .deployed_lambdas.json with the 3 ARNs
-#
-# $AGENTCORE add gateway-target \
-#   --name generate_guess --gateway num-guess-working-gw \
-#   --type lambda-function-arn \
-#   --lambda-arn "$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['generate_guess'])")" \
-#   --tool-schema-file ../tool_schemas/generate_guess.json \
-#   --outbound-auth none --json
-#
-# $AGENTCORE add gateway-target \
-#   --name read_secret --gateway num-guess-inspector-gw \
-#   --type lambda-function-arn \
-#   --lambda-arn "$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['read_secret'])")" \
-#   --tool-schema-file ../tool_schemas/read_secret.json \
-#   --outbound-auth none --json
+# --- Lambdas (3): deploy via boto3 first (non-interactive `add gateway-target`/
+# `add evaluator` only accept a pre-existing Lambda ARN, no deploy-from-source
+# flag) - writes .deployed_lambdas.json with the 3 ARNs.
+python ../deploy_lambdas.py
 
-# --- Evaluator (code-based, external Lambda ARN) - PENDING, same reason ---
-# $AGENTCORE add evaluator \
-#   --name number_guessing_no_secret_leak_evaluator \
-#   --level TRACE --type code-based \
-#   --lambda-arn "$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['no_secret_leak_evaluator'])")" \
-#   --json
+# --- Gateway targets (2) ---
+# Two gotchas discovered by trial and error against the live CLI:
+#  1. --outbound-auth is NOT accepted for --type lambda-function-arn (only
+#     relevant for mcp-server/http-runtime/open-api-schema targets) - omit it.
+#  2. --tool-schema-file must be an ABSOLUTE path to a bare JSON ARRAY of
+#     ToolDefinition objects ([{name, description, inputSchema}]), not a
+#     relative path and not wrapped in {"tools": [...]}.
+GEN_GUESS_ARN=$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['generate_guess'])")
+GEN_GUESS_SCHEMA="$(cd .. && pwd)/tool_schemas/generate_guess.json"
+$AGENTCORE add gateway-target \
+  --name generate_guess --gateway num-guess-working-gw \
+  --type lambda-function-arn \
+  --lambda-arn "$GEN_GUESS_ARN" \
+  --tool-schema-file "$GEN_GUESS_SCHEMA" \
+  --json
+
+READ_SECRET_ARN=$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['read_secret'])")
+READ_SECRET_SCHEMA="$(cd .. && pwd)/tool_schemas/read_secret.json"
+$AGENTCORE add gateway-target \
+  --name read_secret --gateway num-guess-inspector-gw \
+  --type lambda-function-arn \
+  --lambda-arn "$READ_SECRET_ARN" \
+  --tool-schema-file "$READ_SECRET_SCHEMA" \
+  --json
+
+# --- Evaluator (code-based, external Lambda ARN) ---
+EVAL_ARN=$(python3 -c "import json;print(json.load(open('../.deployed_lambdas.json'))['no_secret_leak_evaluator'])")
+$AGENTCORE add evaluator \
+  --name number_guessing_no_secret_leak_evaluator \
+  --level TRACE --type code-based \
+  --lambda-arn "$EVAL_ARN" \
+  --json
 
 # --- Guardrail (plain Bedrock resource, not agentcore.json-managed) ---
-# python post_deploy/create_guardrail.py
+python ../post_deploy/create_guardrail.py
 # -> hand-set the printed GUARDRAIL_ID/GUARDRAIL_VERSION/GUARDRAIL_BLOCKED_MESSAGE
 #    into the Inspector Agent's envVars in agentcore.json (no CLI flag for this).
+# Actual values from the first run (regenerate if the guardrail is ever recreated):
+#   GUARDRAIL_ID=x635vhd7ug25  GUARDRAIL_VERSION=DRAFT
+#   GUARDRAIL_BLOCKED_MESSAGE="Output blocked by the no-secret-leak guardrail."
 
-# --- Connections (runtime -> gateway/memory IAM wiring) and remaining
-# envVars (BEDROCK_MODEL_ID, AWS_REGION, MAX_LOOPS_PARAM_NAME, the two
-# runtime ARNs for the Orchestrator, etc.) - PENDING: no non-interactive CLI
-# flag was found for `connections`; these get hand-authored directly into
-# agentcore.json against the confirmed schema in .llm-context/agentcore.ts,
-# then checked with:
+# --- Static envVars (BEDROCK_MODEL_ID, AWS_REGION, GUARDRAIL_*,
+# MAX_LOOPS_PARAM_NAME) + Project tags on every runtime/memory/gateway/
+# evaluator - hand-authored (no non-interactive CLI flag exists for envVars
+# or tags), see the inline `python3 <<EOF ... EOF` blocks used to patch
+# agentcore.json - reproduced in deploy/agentcore-cli/patch_agentcore_json.py.
+python3 ../patch_agentcore_json.py
+$AGENTCORE validate
+
+# =====================================================================
+# PHASE 1 DEPLOY: runtimes + gateways (+ targets) + memory + evaluator,
+# with NO cross-resource `connections` yet. IMPORTANT: Gateway/Runtime ARNs
+# are not known before creation (unlike the pre-deployed Lambda ARNs above),
+# so no runtime can be granted gateway/runtime access yet - every runtime's
+# execution role gets ONLY the implicit, all-agents Memory access AgentCore
+# grants automatically (confirmed by reading node_modules/@aws/agentcore-cdk's
+# AgentCoreApplication.wireMemoriesToAgents - Gateway/Runtime access is never
+# implicit, only Memory is). This is a safe, default-deny intermediate state.
+# =====================================================================
+$AGENTCORE deploy -y
+
+# --- After phase 1, capture the real ARNs this deploy produced ---
+# $AGENTCORE status --json > ../.deployed_state.json
+# (or `agentcore fetch`) - used to fill in phase 2's connections + envVars below.
+
+# =====================================================================
+# PHASE 2: hand-add `connections` (Working->its own gateway only,
+# Inspector->its own gateway only, Orchestrator->both runtimes) using the
+# real ARNs from phase 1, plus the Orchestrator's WORKING_AGENT_ROLE_ARN /
+# INSPECTOR_AGENT_GATEWAY_ARN static envVars (for guard_node's IAM
+# introspection check) and an `additionalPolicies` grant letting the
+# Orchestrator's role call iam:ListRolePolicies/GetRolePolicy on the
+# Working Agent's role ARN specifically. No non-interactive CLI flag exists
+# for `connections` - hand-authored against .llm-context/agentcore.ts, then:
+# =====================================================================
 # $AGENTCORE validate
+# $AGENTCORE deploy -y
 
 # --- Deploy everything (first step that is genuinely irreversible/billable
 # beyond the Lambdas above - confirm before running) ---

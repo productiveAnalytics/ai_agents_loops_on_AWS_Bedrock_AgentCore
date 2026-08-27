@@ -55,7 +55,11 @@ INSPECTOR_AGENT_ACTOR_ID = "inspector-agent"
 GUARDRAIL_NAME = "number-guessing-no-secret-leak-guardrail"
 
 # --- Evaluator ---
-EVALUATOR_NAME = "number_guessing_no_secret_leak_evaluator"
+# Kept short: agentcore.json also project-name-prefixes evaluator names at
+# deploy time ("<project-name>_<name>"), and the combined string must satisfy
+# ^[a-zA-Z][a-zA-Z0-9_]{0,47}$ - confirmed via a live CloudFormation
+# validation error, not just the local schema doc.
+EVALUATOR_NAME = "no_secret_leak_evaluator"
 
 # --- SSM Parameter Store (secret_value is SecureString; never committed to the repo) ---
 SSM_PARAM_PREFIX = "/number-guessing-ai-agents"

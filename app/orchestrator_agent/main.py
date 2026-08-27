@@ -29,7 +29,7 @@ app = BedrockAgentCoreApp()
 
 _ssm = boto3.client("ssm", region_name=config.AWS_REGION)
 _agentcore_data = boto3.client("bedrock-agentcore", region_name=config.AWS_REGION)
-_agentcore_control = boto3.client("bedrock-agentcore-control", region_name=config.AWS_REGION)
+_iam = boto3.client("iam")
 
 # Tool names the Working Agent must never be able to reach. FORBIDDEN here for
 # parity with the original's FORBIDDEN_TOOL_NAMES concept, but the guard now
@@ -113,26 +113,37 @@ def working_node(state: GameState) -> GameState:
 
 
 def guard_node(state: GameState) -> GameState:
-    """Real AWS-verifiable cheat-boundary check: confirm the Working Agent's
-    role is not a named principal on the Inspector's gateway resource policy."""
-    try:
-        policy_response = _agentcore_control.get_resource_policy(
-            resourceArn=config.INSPECTOR_AGENT_GATEWAY_ARN
-        )
-        policy = json.loads(policy_response["policy"])
-        principals = set()
-        for statement in policy.get("Statement", []):
-            aws_principal = statement.get("Principal", {}).get("AWS")
-            if isinstance(aws_principal, str):
-                principals.add(aws_principal)
-            elif isinstance(aws_principal, list):
-                principals.update(aws_principal)
-        cheated = config.WORKING_AGENT_ROLE_ARN in principals
-    except _agentcore_control.exceptions.ResourceNotFoundException:
-        # No resource policy attached yet is the safe default (default-deny) -
-        # not the same as being an allowed principal, so this is not a cheat.
-        cheated = False
+    """Real AWS-verifiable cheat-boundary check.
 
+    AgentCore's `@aws/agentcore-cdk` grants `InvokeGateway` on EVERY
+    in-project gateway to EVERY in-project runtime unconditionally (its own
+    source comment: "all resources have implicit access, so all gateways are
+    wired to all agents") - so an Allow statement naming the Inspector's
+    gateway is *expected* to be present on the Working Agent's role; that is
+    not itself a cheat signal. Real isolation here comes from an explicit
+    IAM Deny statement (added via additionalPolicies) on that same ARN,
+    which always overrides the automatic Allow. So the real check is: does
+    the Working Agent's role have an explicit Deny covering the Inspector's
+    gateway ARN + InvokeGateway? Absence of that Deny is the cheat signal.
+    """
+    role_name = config.WORKING_AGENT_ROLE_ARN.rsplit("/", 1)[-1]
+    has_deny = False
+    for policy_name in _iam.list_role_policies(RoleName=role_name)["PolicyNames"]:
+        document = _iam.get_role_policy(RoleName=role_name, PolicyName=policy_name)["PolicyDocument"]
+        for statement in document.get("Statement", []):
+            if statement.get("Effect") != "Deny":
+                continue
+            actions = statement.get("Action", [])
+            actions = [actions] if isinstance(actions, str) else actions
+            resources = statement.get("Resource", [])
+            resources = [resources] if isinstance(resources, str) else resources
+            if "bedrock-agentcore:InvokeGateway" in actions and config.INSPECTOR_AGENT_GATEWAY_ARN in resources:
+                has_deny = True
+                break
+        if has_deny:
+            break
+
+    cheated = not has_deny
     if cheated:
         _log(agent="orchestrator", event="cheat_detected", role=config.WORKING_AGENT_ROLE_ARN)
     return {"cheat_detected": cheated}

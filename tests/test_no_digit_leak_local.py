@@ -4,7 +4,7 @@ from lambdas.no_secret_leak_evaluator.handler import _contains_secret
 from shared.guardrail_config import build_guardrail_config
 
 _DIGIT_PATTERN = re.compile(
-    build_guardrail_config()["sensitive_information_policy_config"]["regexes_config"][0]["pattern"]
+    build_guardrail_config()["sensitiveInformationPolicyConfig"]["regexesConfig"][0]["pattern"]
 )
 
 
@@ -19,10 +19,10 @@ def test_guardrail_pattern_does_not_match_digit_free_hints():
 
 
 def test_guardrail_config_blocks_output_not_input():
-    regex_config = build_guardrail_config()["sensitive_information_policy_config"]["regexes_config"][0]
-    assert regex_config["output_action"] == "BLOCK"
-    assert regex_config["output_enabled"] is True
-    assert regex_config["input_enabled"] is False
+    regex_config = build_guardrail_config()["sensitiveInformationPolicyConfig"]["regexesConfig"][0]
+    assert regex_config["outputAction"] == "BLOCK"
+    assert regex_config["outputEnabled"] is True
+    assert regex_config["inputEnabled"] is False
 
 
 def test_evaluator_detects_secret_in_nested_spans():

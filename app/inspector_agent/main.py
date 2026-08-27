@@ -72,8 +72,16 @@ def check_guess(guess: int, secret: int) -> dict:
 
 
 def _parse_secret(tool_result) -> int:
+    """MCP tool results come back as a list of content blocks
+    ([{"type": "text", "text": "{\"secret_value\": N}"}]) - confirmed live
+    against the deployed Gateway. Also handles a bare dict/JSON string
+    defensively."""
     if isinstance(tool_result, dict):
-        return int(tool_result["secret_value"])
+        if "secret_value" in tool_result:
+            return int(tool_result["secret_value"])
+        if "text" in tool_result:
+            return _parse_secret(tool_result["text"])
+        raise ValueError(f"Unexpected read_secret tool result dict shape: {tool_result!r}")
     if isinstance(tool_result, str):
         return int(json.loads(tool_result)["secret_value"])
     if isinstance(tool_result, list) and tool_result:
@@ -90,7 +98,9 @@ async def _read_secret() -> int:
         async with ClientSession(read, write) as session:
             await session.initialize()
             tools = await load_mcp_tools(session)
-            read_secret_tool = next(t for t in tools if t.name == "read_secret")
+            # Gateway namespaces MCP tool names as "${target_name}___${tool_name}"
+            # (confirmed in AWS docs) - our Gateway target is named "read-secret".
+            read_secret_tool = next(t for t in tools if t.name == "read-secret___read_secret")
             result = await read_secret_tool.ainvoke({})
             return _parse_secret(result)
 
