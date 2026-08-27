@@ -1,0 +1,5 @@
+bedrock-agentcore
+langchain
+langchain-aws
+langchain-mcp-adapters
+mcp-proxy-for-aws

@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node (agentcore CLI's generated CDK app under deploy/agentcore-cli/agentcore/cdk/)
+node_modules/
+cdk.out/
+
+# agentcore CLI local state / secrets - never commit these
+deploy/agentcore-cli/agentcore/.env.local
+deploy/agentcore-cli/agentcore/.cli/
+
+# Local-only manifest of deployed Lambda ARNs (regenerate via deploy_lambdas.py)
+deploy/agentcore-cli/.deployed_lambdas.json

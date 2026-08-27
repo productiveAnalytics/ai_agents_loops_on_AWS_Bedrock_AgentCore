@@ -1,0 +1,16 @@
+[project]
+name = "ai-agents-loops-on-aws-bedrock-agentcore"
+version = "0.1.0"
+description = "Number-guessing multi-agent loop on Amazon Bedrock AgentCore (LangChain + LangGraph, Runtime/Memory/Gateway/Guardrails/Evaluations/Observability)"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.34",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.uv]
+package = false

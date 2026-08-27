@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schema.agentcore.aws.dev/v1/agentcore.json",
+  "name": "agentcorecli",
+  "version": 1,
+  "managedBy": "CDK",
+  "tags": {
+    "agentcore:created-by": "agentcore-cli",
+    "agentcore:project-name": "agentcorecli"
+  },
+  "runtimes": [
+    {
+      "name": "number_guessing_working_agent",
+      "build": "Container",
+      "entrypoint": "main.py",
+      "codeLocation": "../../../app/working_agent/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    },
+    {
+      "name": "number_guessing_inspector_agent",
+      "build": "Container",
+      "entrypoint": "main.py",
+      "codeLocation": "../../../app/inspector_agent/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    },
+    {
+      "name": "number_guessing_orchestrator_agent",
+      "build": "Container",
+      "entrypoint": "main.py",
+      "codeLocation": "../../../app/orchestrator_agent/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    }
+  ],
+  "memories": [
+    {
+      "name": "number_guessing_game_memory",
+      "eventExpiryDuration": 30,
+      "strategies": []
+    }
+  ],
+  "knowledgeBases": [],
+  "credentials": [],
+  "evaluators": [],
+  "onlineEvalConfigs": [],
+  "agentCoreGateways": [
+    {
+      "name": "num-guess-working-gw",
+      "protocolType": "MCP",
+      "description": "Exposes only generate_guess - the only tool the Working Agent's role can reach",
+      "targets": [],
+      "authorizerType": "AWS_IAM",
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    },
+    {
+      "name": "num-guess-inspector-gw",
+      "protocolType": "MCP",
+      "description": "Exposes only read_secret - the only tool the Inspector Agent's role can reach",
+      "targets": [],
+      "authorizerType": "AWS_IAM",
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    }
+  ],
+  "policyEngines": [],
+  "configBundles": [],
+  "abTests": [],
+  "harnesses": [],
+  "datasets": [],
+  "payments": []
+}
